@@ -1,0 +1,78 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import platform
+import matplotlib.font_manager as fm
+
+# --------- 한글 폰트 설정 ---------
+if platform.system() == 'Windows':
+    plt.rcParams['font.family'] = 'Malgun Gothic'
+elif platform.system() == 'Darwin':
+    plt.rcParams['font.family'] = 'AppleGothic'
+else:
+    plt.rcParams['font.family'] = 'NanumGothic'
+plt.rcParams['axes.unicode_minus'] = False
+
+# --------- 상수 정의 ---------
+c = 3e8  # 빛의 속도 (m/s)
+G = 6.674e-11  # 중력 상수
+M = 5.972e24   # 지구 질량 (kg)
+R_earth = 6.378e6  # 지구 반지름 (m)
+day = 86400  # 하루 (초)
+
+# --------- GPS 위성 정보 ---------
+gps_speed = 3874  # m/s
+gps_height = 20200e3  # m
+
+# --------- 특수 상대성: 속도에 따른 시간 지연 ---------
+velocities = np.linspace(0, 8000, 300)
+sr_dilation = (0.5 * (velocities ** 2) / c ** 2) * day * 1e6  # μs/day
+
+# --------- 일반 상대성: 고도에 따른 시간 팽창 ---------
+heights = np.linspace(0, 40000e3, 300)
+r = R_earth + heights
+phi_diff = (1 / R_earth - 1 / r)
+gr_dilation = (G * M / c**2) * phi_diff * day * 1e6  # μs/day
+
+# --------- GPS 지점 계산 ---------
+gps_sr = (0.5 * gps_speed ** 2 / c ** 2) * day * 1e6
+gps_r = R_earth + gps_height
+gps_phi_diff = (1 / R_earth - 1 / gps_r)
+gps_gr = (G * M / c**2) * gps_phi_diff * day * 1e6
+gps_total = gps_gr - gps_sr
+
+# --------- 그래프 생성 ---------
+fig, ax = plt.subplots(2, 1, figsize=(16, 8))
+
+# (1) 특수 상대성 이론 그래프
+ax[0].plot(velocities / 1000, sr_dilation, color='blue')
+ax[0].scatter(gps_speed / 1000, gps_sr, color='red', label='GPS 위성')
+ax[0].set_title('특수 상대성 이론: 속도에 따른 시간 팽창')
+ax[0].set_xlabel('속도 (km/s)')
+ax[0].set_ylabel('시간 팽창 (μs/day)')
+ax[0].legend()
+ax[0].grid(True)
+
+# (2) 일반 상대성 이론 그래프
+ax[1].plot(heights / 1000, gr_dilation, color='green')
+ax[1].scatter(gps_height / 1000, gps_gr, color='red', label='GPS 위성')
+ax[1].set_title('일반 상대성 이론: 고도에 따른 시간 팽창')
+ax[1].set_xlabel('고도 (km)')
+ax[1].set_ylabel('시간 팽창 (μs/day)')
+ax[1].legend()
+ax[1].grid(True)
+
+# --------- 정보 텍스트 박스 ---------
+info_text = (
+    f"▶ GPS 위성 정보\n"
+    f" - 속도: {gps_speed:.1f} m/s\n"
+    f" - 고도: {gps_height/1000:.1f} km\n"
+    f" - 특수 상대성 이론: {gps_sr:.2f} μs/day (느려짐)\n"
+    f" - 일반 상대성 이론: {gps_gr:.2f} μs/day (빨라짐)\n"
+    f" - 총 시간 팽창: {gps_total:.2f} μs/day (빨라짐)"
+)
+
+plt.gcf().text(0.75, 0.5, info_text, fontsize=12,
+               bbox=dict(facecolor='lightyellow', edgecolor='black'))
+
+plt.tight_layout()
+plt.show()
